@@ -215,3 +215,43 @@ If you try to run pytest and it fails, ensure it's installed in your current env
 Bash
 pip install pytest
 Quick Tip: If you see a run_tests function inside a Python file and want to trigger it manually for a "test run," you can call it directly from the CLI: python -c "import run_tests; run_tests.main()" (replacing main() with whatever the function name is)."
+
+
+
+Prompt 5: "liek how to run test on vscode py" 
+Response 5: "Running pytest inside VS Code is a game-changer because it gives you a clean visual interface to see which tests passed or failed without squinting at terminal text.
+
+Here is the quickest way to get it up and running:
+
+1. Enable the Testing Icon
+Look at the Activity Bar on the far left of VS Code (where the Search and Extensions icons are). You are looking for the Beaker icon.
+If you see it: Click it!
+If you don't see it: You need to "Discover" your tests first.
+2. Configure Pytest in VS Code
+If the Testing panel is empty, follow these steps to link your tests:
+Press Ctrl + Shift + P (or Cmd + Shift + P on Mac) to open the Command Palette.
+Type "Python: Configure Tests" and select it.
+Select pytest as the framework.
+Select Root directory (or wherever your tests are stored, usually . or tests).
+VS Code will scan your project. Once it's done, a list of your tests will appear in the Testing side panel.
+
+3. Running and Debugging
+Once your tests appear in the list, you have three main ways to run them:
+
+Method	How to do it	Best for...
+The Side Panel	Click the Play button next to a test or folder.	Running everything at once.
+The Gutter	Click the Play icon next to the def test_... line in your code.	Testing a single function while coding.
+Debug Mode	Right-click the Play icon and select Debug Test.	Fixing a specific bug with breakpoints.
+Pro Tips for VS Code Testing
+Status Bar: Check the bottom-left of your window. VS Code often shows a quick summary (e.g., ✓ 5 | ✗ 1) of your test results.
+Automatic Runs: You can click the "Refresh" icon in the Testing panel to re-scan if you've added new files.
+Output Log: If a test fails and you don't know why, click the "Show Output" icon in the Testing panel to see the full Python traceback.
+Common "Gotcha"
+If VS Code says "No tests discovered," make sure your test files start with test_ (e.g., test_logic.py) and your functions start with test_ (e.g., def test_calculation():). Pytest is picky about names!
+
+Would you like me to help you write a pytest.ini file to customize how VS Code finds your tests?" 
+
+
+
+Prompt 6:
+Response 6: 
