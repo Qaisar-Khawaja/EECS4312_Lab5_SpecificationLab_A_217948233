@@ -1,5 +1,5 @@
-## Student Name:
-## Student ID: 
+## Student Name:Khawaja Faiza Qaisar
+## Student ID: 217948233
 
 
 Prompt 1: "explain this file in short (run_tests_with_pytest.md) "# How to Run Test Cases 
@@ -163,6 +163,55 @@ Let's adjust the logic to be extremely strictly aligned and ensure we aren't "do
 
 
 --------------------------------------------------
-Prompt 3: "Copy paste your question"
-LLM Response 3: "Copy paste LLMs response"
+Prompt 3: "yea looks like it " {"start": "09:30", "end": "10:00"}," its 30 mins"
+LLM Response 3: "If the test expects 10:15 as the next slot after the 09:30–10:00 meeting, and your current code is picking 10:00, it means your code is too efficient.
+
+In many scheduling systems, if a meeting ends at 10:00, the system doesn't let you start the next one until the next "tick" of the clock (e.g., 10:15), or there is a hidden 15-minute buffer requirement.
+
+The Problem in the Logic
+Currently, your while loop checks:
+09:00: Valid.
+09:15: Invalid (Ends at 09:45, overlaps 09:30 meeting).
+09:30: Invalid (Starts at 09:30, overlaps 09:30 meeting).
+09:45: Invalid (Starts at 09:45, overlaps 09:30 meeting).
+10:00: Valid (Your code sees that 10:00 is not inside the 09:30–10:00 block).
+If the test expects slots[1] == "10:15", it is intentionally skipping 10:00.
+
+The Solution
+To match the test's expectation, we need to ensure that a slot is only valid if it doesn't touch a busy period, or simply ensure the step logic aligns with the test's specific sequence.
+
+Try modifying the conflict check to be slightly more restrictive"
 --------------------------------------------------
+
+
+
+Prompt 4: "how to test run pytests like I need to check run_tests"
+Response 4: "Testing a Markdown file like pytests.md is a bit of a "meta" task. Since Markdown is just text, you aren't running the file itself—you’re likely trying to run the Python code snippets contained inside it or a script named run_tests that handles the automation.
+
+Here is how you can approach this depending on what you're trying to achieve:
+
+1. Running Tests via a run_tests Script
+If your project has a file (likely run_tests.py or a shell script), you usually trigger it from your terminal. Open your terminal in the project root and try:
+If it's a Python script: python run_tests.py
+If it's a Shell script: bash run_tests.sh or ./run_tests
+2. Testing Code Snippets inside Markdown
+If you want to ensure the code examples inside pytests.md actually work, you can use a tool called pytest-markdown or phawx. However, the most common way to do this natively is using the doctest module.
+
+Run this command to check the Python examples in your MD file:
+
+Bash
+python -m doctest -v pytests.md
+3. Standard Pytest Execution
+If pytests.md is just documentation and you actually want to run your actual test suite (the .py files), simply use:
+
+Command	Purpose
+pytest	Runs all tests in the current directory.
+pytest path/to/test_file.py	Runs a specific test file.
+pytest -k "expression"	Runs tests that match a specific name.
+pytest --collect-only	Shows what tests would run without actually running them.
+Troubleshooting "Command Not Found"
+If you try to run pytest and it fails, ensure it's installed in your current environment:
+
+Bash
+pip install pytest
+Quick Tip: If you see a run_tests function inside a Python file and want to trigger it manually for a "test run," you can call it directly from the CLI: python -c "import run_tests; run_tests.main()" (replacing main() with whatever the function name is)."
