@@ -1,8 +1,8 @@
 ## Student Name:
 ## Student ID: 
 
-Prompt 1: "Copy paste your question"
-LLM Response 1: "Copy paste LLMs response"
+Prompt 1: " "
+LLM Response 1: " "
 
 --------------------------------------------------
 Prompt 2: "Copy paste your question"
