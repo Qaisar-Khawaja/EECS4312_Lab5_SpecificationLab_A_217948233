@@ -8,8 +8,6 @@ Implement the function `suggest_slots` to return a list of valid meeting start t
 on a given day, taking into account working hours, and possible specific constraints. See the lab handout
 for full requirements.
 """
-
-
 from typing import List, Dict
 
 def suggest_slots(
@@ -17,58 +15,148 @@ def suggest_slots(
     meeting_duration: int,
     day: str
 ) -> List[str]:
-    # 1. Setup Working Hours and Lunch
-    WORK_START = 9 * 60   # 09:00
-    WORK_END = 17 * 60    # 17:00
-    LUNCH_START = 12 * 60 # 12:00
-    LUNCH_END = 13 * 60   # 13:00
-    
+    WORK_START = 9 * 60
+    WORK_END = 17 * 60
+    LUNCH_START = 12 * 60
+    LUNCH_END = 13 * 60
+    STEP = 15
+
     def to_minutes(time_str: str) -> int:
-        h, m = map(int, time_str.split(':'))
+        h, m = map(int, time_str.split(":"))
         return h * 60 + m
 
     def to_str(minutes: int) -> str:
         h, m = divmod(minutes, 60)
         return f"{h:02d}:{m:02d}"
 
-    # 2. Build and sort the busy list
-    busy_times = []
-    for event in events:
-        start = to_minutes(event["start"])
-        end = to_minutes(event["end"])
-        if end > WORK_START and start < WORK_END:
-            busy_times.append((max(start, WORK_START), min(end, WORK_END)))
-    
-    # Add Lunch Break
-    busy_times.append((LUNCH_START, LUNCH_END))
-    # Crucial: Must be sorted for the logic to find the next available gap correctly
-    busy_times.sort()
+    # Filter only events for the requested day
+    events_for_day = [e for e in events if e.get("day", day) == day]
 
+    # Build busy list, clip to work hours
+    busy_times = []
+    for e in events_for_day:
+        start = max(to_minutes(e["start"]), WORK_START)
+        end = min(to_minutes(e["end"]), WORK_END)
+        if end > start:
+            busy_times.append((start, end))
+    
+    # Add lunch
+    busy_times.append((LUNCH_START, LUNCH_END))
+
+    # Merge overlapping busy periods
+    busy_times.sort()
+    merged_busy = []
+    for start, end in busy_times:
+        if not merged_busy or start >= merged_busy[-1][1]:
+            merged_busy.append([start, end])
+        else:
+            merged_busy[-1][1] = max(merged_busy[-1][1], end)
+
+    # Find available slots
     available_starts = []
     current_time = WORK_START
 
-    while current_time + meeting_duration <= WORK_END:
-        meeting_end = current_time + meeting_duration
-        conflict_end = -1
-        
-        for b_start, b_end in busy_times:
-            # Check if current window [current_time, meeting_end] overlaps with [b_start, b_end]
-            if not (meeting_end <= b_start or current_time >= b_end):
-                conflict_end = b_end
-                break
-        
-        if conflict_end == -1:
-            # No conflict found
+    for start, end in merged_busy:   
+        while current_time + meeting_duration <= start:
             available_starts.append(to_str(current_time))
-            # The test 'test_unsorted_events_are_handled' implies a 15-min step 
-            # AFTER a successful slot is found.
-            current_time += 15
+            current_time += STEP
+        # Move current_time to the end of busy period
+        current_time = end
+        # Align upward if needed
+        if current_time % STEP != 0:
+            current_time += STEP - (current_time % STEP)
         else:
-            # Conflict found! Jump to the end of the busy period.
-            current_time = conflict_end
+            # Event ended exactly on a boundary so skip that boundary
+            current_time += STEP
 
-            # Align to next 15-minute boundary
-            if current_time % 15 != 0:
-                current_time += 15 - (current_time % 15)
-
+    # After last busy period, fill remaining day
+    while current_time + meeting_duration <= WORK_END:
+        available_starts.append(to_str(current_time))
+        current_time += STEP
     return available_starts
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+# from typing import List, Dict
+
+# def suggest_slots(
+#     events: List[Dict[str, str]],
+#     meeting_duration: int,
+#     day: str
+# ) -> List[str]:
+#     WORK_START = 9 * 60
+#     WORK_END = 17 * 60
+#     LUNCH_START = 12 * 60
+#     LUNCH_END = 13 * 60
+#     STEP = 15
+
+#     def to_minutes(time_str: str) -> int:
+#         h, m = map(int, time_str.split(":"))
+#         return h * 60 + m
+
+#     def to_str(minutes: int) -> str:
+#         h, m = divmod(minutes, 60)
+#         return f"{h:02d}:{m:02d}"
+
+#     # Filter only events for the requested day
+#     events_for_day = [e for e in events if e.get("day", day) == day]
+
+#     # Build busy list, clip to work hours
+#     busy_times = []
+#     for e in events_for_day:
+#         start = max(to_minutes(e["start"]), WORK_START)
+#         end = min(to_minutes(e["end"]), WORK_END)
+#         if end > start:
+#             busy_times.append((start, end))
+    
+#     # Add lunch
+#     busy_times.append((LUNCH_START, LUNCH_END))
+
+#     # Merge overlapping busy periods
+#     busy_times.sort()
+#     merged_busy = []
+#     for start, end in busy_times:
+#         if not merged_busy or start > merged_busy[-1][1]:
+#             merged_busy.append([start, end])
+#         else:
+#             merged_busy[-1][1] = max(merged_busy[-1][1], end)
+
+#     # Find available slots
+#     available_starts = []
+#     current_time = WORK_START
+
+#     for start, end in merged_busy:
+#         # Slots before the busy period
+#         while current_time + meeting_duration <= start:
+#             available_starts.append(to_str(current_time))
+#             current_time += STEP
+
+#         # Move current_time to the end of busy period
+#         current_time = end
+
+#         # ⭐ REQUIRED FIX: align to next 15‑minute boundary
+#         if current_time % STEP != 0:
+#             current_time += STEP - (current_time % STEP)
+#         current_time += STEP
+
+#     # After last busy period, fill remaining day
+#     while current_time + meeting_duration <= WORK_END:
+#         available_starts.append(to_str(current_time))
+#         current_time += STEP
+
+#     return available_starts

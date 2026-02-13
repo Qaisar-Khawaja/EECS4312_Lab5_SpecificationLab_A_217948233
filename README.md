@@ -1,6 +1,6 @@
 ## TODO:
-## Student Name:
-## Student ID: 
+## Student Name: Khawaja Faiza Qaisar
+## Student ID: 217948233
 
 # Meeting Slot Suggestion Lab Repository
 

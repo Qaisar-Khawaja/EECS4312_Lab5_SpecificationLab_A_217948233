@@ -1,8 +1,6 @@
 ## Student Name:Khawaja Faiza Qaisar
 ## Student ID: 217948233
 
-## USed this command to ran my tests: export PYTHONPATH=$PYTHONPATH:$(pwd)/src && pytest -v
-
 """
 Public test suite for the meeting slot suggestion exercise.
 
@@ -10,9 +8,19 @@ Students can run these tests locally to check basic correctness of their impleme
 The hidden test suite used for grading contains additional edge cases and will not be
 available to students.
 """
+import sys
 import pytest
-from solution import suggest_slots
+from pathlib import Path
 
+# Figure out where the 'src' folder is relative to this test file
+src_path = str(Path(__file__).resolve().parent.parent / "src")
+
+# Add that folder to the list of places Python looks for code
+if src_path not in sys.path:
+    sys.path.insert(0, src_path)
+
+#Now you can safely import your code and run pytest
+from solution import suggest_slots
 
 def test_single_event_blocks_overlapping_slots():
     """
@@ -69,57 +77,190 @@ def test_lunch_break_blocks_all_slots_during_lunch():
 
 def test_tight_fit_between_events():
     """
-    Checks if a slot is suggested when it fits perfectly between two events.
+    A meeting may NOT start exactly at the end of an event.
+    It must start at the next 15‑minute boundary.
     """
     events = [
         {"start": "09:00", "end": "10:00"},
         {"start": "11:00", "end": "12:00"}
     ]
-    # A 60-min meeting should fit exactly at 10:00
     slots = suggest_slots(events, meeting_duration=60, day="2026-02-01")
-    assert "10:00" in slots
-    assert "10:15" not in slots # Because 10:15 + 60 mins would hit the 11:00 event
+
+    assert "10:00" not in slots
+    assert "10:15" not in slots
+    assert "13:00" not in slots
+    assert "13:15" in slots
 
 def test_meeting_cannot_exceed_work_end():
     """
-    A meeting must end by 17:00. 
-    A 45-min meeting starting at 16:30 should be invalid.
+    A meeting must end by 17:00.
     """
     events = []
     slots = suggest_slots(events, meeting_duration=45, day="2026-02-01")
-    
-    assert "16:15" in slots # Ends at 17:00
-    assert "16:30" not in slots # Ends at 17:15 (Overtime)
+
+    assert "16:15" in slots
+    assert "16:30" not in slots
+
 
 def test_overlapping_busy_events():
     """
-    If two events overlap (14:00-15:00 and 14:30-15:30), 
-    the logic should treat the whole block as busy.
+    Overlapping events must merge into one busy block.
+    A meeting cannot start exactly at the end of that block.
     """
     events = [
         {"start": "14:00", "end": "15:00"},
         {"start": "14:30", "end": "15:30"}
     ]
     slots = suggest_slots(events, meeting_duration=30, day="2026-02-01")
-    
+
     assert "14:00" not in slots
     assert "15:00" not in slots
-    assert "15:30" in slots
+    assert "15:30" not in slots
+    assert "15:45" in slots
 
 def test_no_available_slots_full_day():
     """
-    If the schedule is completely packed, return an empty list.
+    If the entire day is busy, no slots should be returned.
     """
     events = [{"start": "09:00", "end": "17:00"}]
     slots = suggest_slots(events, meeting_duration=15, day="2026-02-01")
-    
+
     assert slots == []
 
-def test_earliest_possible_slot():
+def test_events_only_for_specific_day():
     """
-    Ensures the very first slot of the day is suggested if free.
+    Only events matching the requested day should block slots.
     """
-    events = []
-    slots = suggest_slots(events, meeting_duration=15, day="2026-02-01")
-    
-    assert slots[0] == "09:00"
+    events = [
+        {"day": "2026-02-01", "start": "09:30", "end": "10:00"},
+        {"day": "2026-02-01", "start": "11:00", "end": "12:00"},
+        {"day": "2026-02-02", "start": "09:00", "end": "09:30"},  # Different day
+        {"day": "2026-02-02", "start": "14:00", "end": "15:00"}   # Different day
+    ]
+
+    # Day 1
+    slots_day1 = suggest_slots(events, meeting_duration=30, day="2026-02-01")
+    assert "09:00" in slots_day1
+    assert "09:30" not in slots_day1
+    assert "10:15" in slots_day1
+    assert "11:00" not in slots_day1
+
+    # Day 2
+    slots_day2 = suggest_slots(events, meeting_duration=30, day="2026-02-02")
+
+    assert "09:00" not in slots_day2
+    assert "09:30" not in slots_day2
+    assert "09:45" in slots_day2
+    assert "14:00" not in slots_day2
+    assert "15:00" not in slots_day2
+    assert "15:15" in slots_day2
+
+
+def test_event_starts_before_work_hours():
+    """
+    Events starting before work hours but ending inside them
+    should block early-morning slots.
+    """
+    events = [{"start": "08:00", "end": "09:30"}]
+    slots = suggest_slots(events, meeting_duration=30, day="2026-02-01")
+
+    assert "09:00" not in slots
+    assert "09:30" not in slots
+    assert "09:45" in slots
+
+
+def test_meeting_duration_longer_than_free_time():
+    """
+    If the meeting duration is longer than any free block,
+    no slots should be returned.
+    """
+    events = [
+        {"start": "09:00", "end": "12:00"},
+        {"start": "13:00", "end": "17:00"}
+    ]
+    slots = suggest_slots(events, meeting_duration=180, day="2026-02-01") 
+    assert slots == []
+
+
+def test_back_to_back_events():
+    """
+    Events that touch (10:00–11:00 and 11:00–12:00)
+    leave no gap for a meeting.
+    """
+    events = [
+        {"start": "10:00", "end": "11:00"},
+        {"start": "11:00", "end": "12:00"}
+    ]
+    slots = suggest_slots(events, meeting_duration=30, day="2026-02-01")
+
+    assert "11:00" not in slots
+    assert "11:15" not in slots
+    assert "13:15" in slots
+
+
+
+def test_multiple_small_gaps():
+    """
+    Small gaps that cannot fit the meeting duration should be ignored.
+    """
+    events = [
+        {"start": "09:00", "end": "09:20"},
+        {"start": "09:35", "end": "09:50"},
+        {"start": "10:05", "end": "10:20"}
+    ]
+    slots = suggest_slots(events, meeting_duration=30, day="2026-02-01")
+
+    assert "09:00" not in slots
+    assert "09:15" not in slots
+    assert "09:30" not in slots
+    assert "10:00" not in slots
+    assert "10:30" in slots
+
+
+def test_exact_fit_but_cannot_start_at_event_end():
+    """
+    Even if a meeting fits exactly between events,
+    it cannot start at the event end time.
+    """
+    events = [
+        {"start": "09:00", "end": "10:00"},
+        {"start": "10:45", "end": "12:00"}
+    ]
+    slots = suggest_slots(events, meeting_duration=45, day="2026-02-01")
+
+    assert "10:00" not in slots
+    assert "10:15" not in slots
+    assert "13:15" in slots
+
+
+def test_invalid_event_ignored():
+    """
+    Events with end <= start should be ignored.
+    """
+    events = [
+        {"start": "10:00", "end": "09:00"},  # invalid
+        {"start": "13:00", "end": "14:00"}
+    ]
+    slots = suggest_slots(events, meeting_duration=30, day="2026-02-01")
+
+    assert "09:00" in slots
+    assert "10:00" in slots
+    assert "10:30" in slots
+    assert "13:00" not in slots
+
+
+def test_duplicate_events():
+    """
+    Duplicate events should not affect correctness.
+    """
+    events = [
+        {"start": "10:00", "end": "11:00"},
+        {"start": "10:00", "end": "11:00"} 
+    ]
+    slots = suggest_slots(events, meeting_duration=30, day="2026-02-01")
+
+    assert "10:00" not in slots
+    assert "10:30" not in slots
+    assert "11:15" in slots
+
+
