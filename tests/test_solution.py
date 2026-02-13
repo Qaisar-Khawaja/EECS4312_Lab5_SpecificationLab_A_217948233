@@ -264,3 +264,58 @@ def test_duplicate_events():
     assert "11:15" in slots
 
 
+##The new Testcases
+def test_friday_no_events_duration_60():
+    events = []
+    result = suggest_slots(events, meeting_duration=60, day="Friday")
+    assert "15:00" in result
+    assert "15:15" not in result
+    assert result[0] == "09:00"
+
+
+def test_friday_short_meeting():
+    events = []
+    result = suggest_slots(events, meeting_duration=30, day="Friday")
+    assert "15:00" in result
+    assert "15:15" not in result
+
+
+def test_friday_event_until_1445():
+    events = [
+        {"day": "Friday", "start": "14:00", "end": "14:45"}
+    ]
+    result = suggest_slots(events, meeting_duration=30, day="Friday")
+    assert "15:00" in result
+    assert "15:15" not in result
+
+def test_friday_event_ends_at_1500():
+    events = [
+        {"day": "Friday", "start": "14:00", "end": "15:00"}
+    ]
+    result = suggest_slots(events, meeting_duration=30, day="Friday")
+    assert "15:00" not in result #because event ends at 15
+    assert "15:15" not in result
+
+def test_friday_long_meeting_cannot_start_at_1500():
+    events = []
+    result = suggest_slots(events, meeting_duration=120, day="Friday")
+    assert "15:00" in result
+    assert "15:15" not in result
+
+
+def test_monday_no_restriction():
+    events = []
+    result = suggest_slots(events, meeting_duration=60, day="Monday")
+    assert "15:00" in result
+    assert "15:15" in result
+    assert "16:00" in result
+
+
+def test_monday_event_ends_at_1500():
+    events = [
+        {"day": "Monday", "start": "14:00", "end": "15:00"}
+    ]
+    result = suggest_slots(events, meeting_duration=30, day="Monday")
+    assert "15:15" in result
+
+
